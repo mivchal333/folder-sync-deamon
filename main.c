@@ -41,13 +41,12 @@ int main(int argc, char * argv[])
 
 
     int wybor = 0, rozmiar = 50;
-    bool rekurencja= false;
     char *in, *out;
     int spij = 5*60; //domyslna dlugosc snu dla demona
     struct stat s;
     char * sciezka_folderu1=NULL;
     char * sciezka_folderu2=NULL;
-    while((wybor = getopt(argc, argv, "s:i:o:m:r")) != -1)
+    while((wybor = getopt(argc, argv,"s:i:o:m:r")) != -1)
     {
         switch(wybor)
         {
@@ -88,11 +87,6 @@ int main(int argc, char * argv[])
                 }
             }
             break;
-
-        case 'r':
-            rekurencja = true;
-            break;
-
         case 'm':
             rozmiar = atoi(optarg);
             break;
@@ -111,8 +105,8 @@ int main(int argc, char * argv[])
 
     while(1)
     {
-        Usuwanie(sciezka_folderu2,sciezka_folderu1,sciezka_folderu2,rekurencja);
-        PrzegladanieFolderu(sciezka_folderu1,sciezka_folderu1,sciezka_folderu2,rekurencja,rozmiar);
+        Usuwanie(sciezka_folderu2,sciezka_folderu1,sciezka_folderu2);
+        PrzegladanieFolderu(sciezka_folderu1,sciezka_folderu1,sciezka_folderu2,rozmiar);
         syslog(LOG_INFO, "Demon przeszedl w stan uspienia");
         if((sleep(spij))==0)
             syslog(LOG_INFO, "Demon sie obudzil");
