@@ -1,0 +1,25 @@
+﻿Temat projektu: Demon synchronizujący dwa podkatalogi
+
+Wykonali: Adam Sujeta i Daniel Wawiórka
+
+W projekcie zaimplementowano wszelkie przewidziane funkcjonalności. Wykorzystano następujące funkcje:
+- porównywanie dwóch podanych katalogów, które są podawane jako argumenty
+- ustawienie czasu uśpnienia demona (demon domyślnie śpi przez 5 minut)
+- ustawienie rozmiaru, dla których dany plik będzie kopiowany albo z użyciem read/write albo z wykorzystaniem mapowania do pamięci. Próg dzielący te pliki jest przekazywany za pomocą argumentu
+- ustawienie, czy synchronizacja ma odbywać się rekurencyjnie (to znaczy pod uwagę mają brane być również podkatalogi w danym katalogu), domyślnie rekurencja jest wyłączona i następuje porównywanie wyłącznie plików w danym folderze
+- podczas kopiowania ustawiane są również prawidłowe daty modyfikacji, by uniknąć wielokrotnego, niepotrzebnego kopiowania tego samego pliku
+- natychmiastowe obudzenie demona za pomocą wysłania sygnału SIGUSR1 (kill -SIGUSR1 pid)
+- wysyłanie logów systemowych z informacjami o działaniu demona (wzbudzanie i usypianie demona naturalnie lub poprzez wysłanie sygnału SIGUSR1, a ponadto kopiowanie i usunięcie pliku z katalogu. Informacja zawiera aktualną datę)
+
+Instrukcja uruchomienia demona:
+./sw_demon -i sciezka_zrodlowa -o sciezka_docelowa [-s czas] [-r] [-m rozmiar]
+
+gdzie:
+-i sciezka_zrodlowa - Ścieżka do katalogu, skąd będzie następować synchronizacja
+-o sciezka_docelowa - Ścieżka do katalogu, dokąd będzie następować synchronizacja
+-s czas - opcjonalny argument, za pomocą niego można ustawić czas w sekundach, w którym demon będzie uśpiony
+-r - opcjonalny argument, za pomocą niego można ustawić, czy dany katalog ma być synchronizowany również z podkatalogami, czy też nie
+-m rozmiar - opcjonalny argument, za pomocą niego można ustawić własny rozmiar, dla których pliki będą kopiowane za pomocą read/write lub za pomocą mmap/write
+
+Przykład:
+./sw_demon -i /home/student/testy/folder1 -o /home/student/testy/folder2 -r -s 120 -m 1024
