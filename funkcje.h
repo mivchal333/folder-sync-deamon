@@ -11,8 +11,9 @@
 #include <signal.h>
 #include <string.h>
 #include <utime.h>
-#include <fcntl.h>
 #include <syslog.h>
+#include <fcntl.h>
+
 off_t pobierz_rozmiar(char *in);
 time_t pobierz_czas(char* wej);
 mode_t pobierz_chmod(char *wej);
