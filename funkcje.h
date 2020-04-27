@@ -26,6 +26,7 @@ void Usuwanie(char * nazwa_sciezki_folder2,char* sciezka_folderu1, char* sciezka
 void kopiuj(char *wej, char *wyj);
 void kopiuj_mapowanie(char *wej, char *wyj);
 void PrzegladanieFolderu(char * nazwa_sciezki1, char* sciezka_folderu1, char* sciezka_folderu2, int switchSize);
-void Logowanie();
+void WakeUpSignalHandler();
+bool isCatalog(char * path);
 
 #endif // FUNKCJE_H_INCLUDED

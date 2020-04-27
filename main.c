@@ -40,39 +40,31 @@ int main(int argc, char *argv[]) {
 
 
     char *in, *out;
-    int argument;
+    int c;
     int sleepTime = 300;
     int switchSize;
-    struct stat s;
-    char *path1 = NULL, *path2 = NULL;
-    while ((argument = getopt(argc, argv, "i:o:s")) != -1) {
-        switch (argument) {
-            case 'i':
+    char *path1 = NULL;
+    char *path2 = NULL;
+    while ((c = getopt(argc, argv, "f:t:s:m")) != -1) {
+        switch (c) {
+            case 'f':
                 in = optarg;
-                if (stat(in, &s) == 0) {
-                    if (!(s.st_mode & S_IFDIR)) {
-                        printf("-i: Podany argument nie jest folderem");
-                        syslog(LOG_ERR, "Podany argument nie jest folderem");
-                        exit(EXIT_FAILURE);
-
-                    } else {
+                    if (isCatalog(in)) {
                         path1 = optarg;
-                    }
-                }
-                break;
-
-            case 'o':
-                out = optarg;
-                if (stat(out, &s) == 0) {
-                    if (s.st_mode & S_IFDIR) //sciezka jest katalogiem
-                    {
-                        path2 = optarg;
-                    } else //sciezka nie jest katalogiem, wywal blad
-                    {
-                        printf("-o: Podany argument nie jest folderem");
-                        syslog(LOG_ERR, "Podany argument nie jest folderem");
+                    } else {
+                        syslog(LOG_ERR, "From path is not a folder. Exiting");
+                        printf("From path must specify folder");
                         exit(EXIT_FAILURE);
                     }
+                break;
+            case 't':
+                out = optarg;
+                if(isCatalog(out)){
+                    path2 = optarg;
+                } else{
+                    syslog(LOG_ERR, "To path is not a folder. Exiting");
+                    printf("To path must specify folder");
+                    exit(EXIT_FAILURE);
                 }
                 break;
             case 's':
@@ -86,12 +78,9 @@ int main(int argc, char *argv[]) {
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-    syslog(LOG_INFO, "Demon synchronizujacy dwa katalogi");
-    if (signal(SIGUSR1, Logowanie) == SIG_ERR) {
-        syslog(LOG_ERR, "Blad sygnalu!");
-        exit(EXIT_FAILURE);
-    }
+    syslog(LOG_DEBUG, "DEMON CONFIGURED");
 
+   signal(SIGUSR1, WakeUpSignalHandler);
 
     while (1) {
         Usuwanie(path2, path1, path2);

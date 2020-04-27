@@ -188,6 +188,20 @@ void PrzegladanieFolderu(char *nazwa_sciezki1, char *sciezka_folderu1, char *sci
     closedir(sciezka);
 }
 
-void Logowanie(int sig) {
-    syslog(LOG_INFO, "Wybudzenie demona przez sygnal SIGUSR1");
+void WakeUpSignalHandler(int sig) {
+    syslog(LOG_DEBUG, "Demon waked up");
+}
+
+bool isCatalog(char *wej)
+{
+    struct stat s;
+    if (stat(wej, &s) == 0) {
+        if (s.st_mode & S_IFDIR) //sciezka jest katalogiem
+        {
+            return true;
+        } else //sciezka nie jest katalogiem, wywal blad
+        {
+            return false;
+        }
+    }
 }
