@@ -42,6 +42,7 @@ int main(int argc, char *argv[]) {
     char *in, *out;
     int argument;
     int sleepTime = 300;
+    int switchSize;
     struct stat s;
     char *path1 = NULL, *path2 = NULL;
     while ((argument = getopt(argc, argv, "i:o:s")) != -1) {
@@ -77,6 +78,9 @@ int main(int argc, char *argv[]) {
             case 's':
                 sleepTime = atoi(optarg);
                 break;
+            case 'm':
+                switchSize = atoi(optarg);
+                break;
         }
     }
     close(STDIN_FILENO);
@@ -91,7 +95,7 @@ int main(int argc, char *argv[]) {
 
     while (1) {
         Usuwanie(path2, path1, path2);
-        PrzegladanieFolderu(path1, path1, path2);
+        PrzegladanieFolderu(path1, path1, path2, switchSize);
         syslog(LOG_INFO, "Demon przeszedl w stan uspienia");
         if ((sleep(sleepTime)) == 0)
             syslog(LOG_INFO, "Demon sie obudzil");
