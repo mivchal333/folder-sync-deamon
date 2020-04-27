@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 
     while (1) {
         Usuwanie(path2, path1, path2);
-        PrzegladanieFolderu(path1, path1, path2, rozmiar);
+        PrzegladanieFolderu(path1, path1, path2);
         syslog(LOG_INFO, "Demon przeszedl w stan uspienia");
         if ((sleep(sleepTime)) == 0)
             syslog(LOG_INFO, "Demon sie obudzil");

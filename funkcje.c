@@ -164,7 +164,7 @@ void kopiuj_mapowanie(char *wej, char *wyj) {
     syslog(LOG_INFO, "Z uzyciem mapowania skopiowano plik %s do miejsca %s", wej, wyj);
 }
 
-void PrzegladanieFolderu(char *nazwa_sciezki1, char *sciezka_folderu1, char *sciezka_folderu2, int Wielkosc_pliku) {
+void PrzegladanieFolderu(char *nazwa_sciezki1, char *sciezka_folderu1, char *sciezka_folderu2) {
     printf("JESTESMY W : %s\n", nazwa_sciezki1);
     struct dirent *plik;
     DIR *sciezka, *pom;
