@@ -48,7 +48,7 @@ void zmien_parametry(char* wej, char *wyj)
 }
 char *podmien_folder2(char * sciezka1, char* sciezka_folderu1, char* sciezka_folderu2)
 {
-    char*sciezka=sciezka1+strlen(sciezka_folderu2);
+    char* sciezka=sciezka1+strlen(sciezka_folderu2);
     char * nowa_sciezka= malloc(strlen(sciezka_folderu1)+strlen(sciezka)+1);
     strcpy(nowa_sciezka,sciezka_folderu1);
     strcat(nowa_sciezka,sciezka);
@@ -158,55 +158,59 @@ void Usuwanie(char * nazwa_sciezki_folder2,char* sciezka_folderu1, char* sciezka
     closedir(sciezka);
 }
 
-void kopiuj(char *wej, char *wyj)
+void copy(char *in, char *out)
 {
-    char bufor[16];
-    int plikwej, plikwyj;
-    int czytajwej, czytajwyj;
-    plikwej = open(wej, O_RDONLY);
-    plikwyj = open(wyj, O_CREAT | O_WRONLY | O_TRUNC, 0644);
-    if(plikwej == -1 || plikwyj==-1)
+    char buffor[16];
+    int in_file,out_file;
+    openfiles(in, out,  &in_file, &out_file);
+    
+    int r_in, r_out;
+    while((r_in = read(in_file, buffor, sizeof(buffor)))>0)
     {
-        syslog(LOG_ERR, "Blad w otwarciu pliku!");
-        exit(EXIT_FAILURE);
-    }
-
-    while((czytajwej = read(plikwej, bufor, sizeof(bufor)))>0)
-    {
-        czytajwyj = write(plikwyj, bufor, (ssize_t) czytajwej);
-        if(czytajwyj != czytajwej)
+        r_out = write(out_file, buffor, (ssize_t) r_in);
+        if(r_out != r_in)
         {
-            perror("BLAD");
+            perror("Error!");
             exit(EXIT_FAILURE);
         }
     }
-    close(plikwej);
-    close(plikwyj);
-    zmien_parametry(wej, wyj);
-    syslog(LOG_INFO, "Skopiowano plik %s", wej);
+    closefiles(in, out,  &in_file, &out_file,1);
+
 }
-void kopiuj_mapowanie(char *wej, char *wyj)
+void mapping_copy(char *in, char *out)
 {
-    int rozmiar = pobierz_rozmiar(wej);
-    int plikwej = open(wej, O_RDONLY);
-    int plikwyj = open(wyj, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    int size = pobierz_rozmiar(in);
+    int in_file,out_file;
+    openfiles(in, out,  &in_file, &out_file);
 
-    if(plikwej == -1 || plikwyj==-1)
-    {
-        syslog(LOG_ERR, "Blad w otwarciu pliku!");
-        exit(EXIT_FAILURE);
-    }
+    char *map = (char*) mmap (0, size, PROT_READ, MAP_SHARED | MAP_FILE, in_file, 0);
 
-    char *mapa = (char*) mmap (0, rozmiar, PROT_READ, MAP_SHARED | MAP_FILE, plikwej, 0);
+    write(out_file, map, size);
+    munmap(map, size);
 
-    write(plikwyj, mapa, rozmiar);
-
-    close(plikwej);
-    close(plikwyj);
-    munmap(mapa, rozmiar); //usuwanie mapy z paamieci;
-    zmien_parametry(wej,wyj);
-    syslog(LOG_INFO, "Z uzyciem mapowania skopiowano plik %s do miejsca %s", wej, wyj);
+    closefiles(in, out,  &in_file, &out_file,0);
 }
+
+void openfiles(char *in, char *out, int *in_file, int *out_file){
+  if((*in_file = open(in, O_RDONLY)) == -1 || (*out_file= open(out, O_CREAT | O_WRONLY | O_TRUNC, 0644)) ==-1)
+  {
+      syslog(LOG_ERR, "File open error!");
+      exit(EXIT_FAILURE);
+    }
+}
+
+
+void closefiles(char *in, char *out, int *in_file, int *out_file, int opc){
+    close(*in_file);
+    close(*out_file);
+    zmien_parametry(in, out);
+    if(opc == 1)
+        syslog(LOG_INFO, "File copied!");
+    else
+        syslog(LOG_INFO, "File copied using mapping!");
+}
+
+
 void PrzegladanieFolderu(char * nazwa_sciezki1, char* sciezka_folderu1, char* sciezka_folderu2, bool CzyR,int Wielkosc_pliku)
 {
     printf("JESTESMY W : %s\n",nazwa_sciezki1);
@@ -247,11 +251,11 @@ void PrzegladanieFolderu(char * nazwa_sciezki1, char* sciezka_folderu1, char* sc
             {
                 if(pobierz_rozmiar(nowa_sciezka)>Wielkosc_pliku)
                 {
-                    kopiuj_mapowanie(nowa_sciezka,podmien_folder1(nowa_sciezka,sciezka_folderu1,sciezka_folderu2));
+                    mapping_copy(nowa_sciezka,podmien_folder1(nowa_sciezka,sciezka_folderu1,sciezka_folderu2));
                 }
                 else
                 {
-                    kopiuj(nowa_sciezka,podmien_folder1(nowa_sciezka,sciezka_folderu1,sciezka_folderu2));
+                    copy(nowa_sciezka,podmien_folder1(nowa_sciezka,sciezka_folderu1,sciezka_folderu2));
                 }
             }
         }

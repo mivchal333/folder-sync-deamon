@@ -22,8 +22,10 @@ char *podmien_folder1(char * sciezka1, char* sciezka_folderu1, char* sciezka_fol
 char *dodaj_do_sciezki(char* sciezka,char *dodatek);
 bool sprawdzanie(char * nazwa_sciezki, char* sciezka_folderu1, char* sciezka_folderu2);
 void Usuwanie(char * nazwa_sciezki_folder2,char* sciezka_folderu1, char* sciezka_folderu2, bool CzyR);
-void kopiuj(char *wej, char *wyj);
-void kopiuj_mapowanie(char *wej, char *wyj);
+void copy(char *in, char *out); //---
+void mapping_copy(char *wej, char *wyj); //---
+void openfiles(char *wej, char *wyj, int *plikwej, int *plikwyj); //---
+void closefiles(char *wej, char *wyj, int *plikwej, int *plikwyj, int opc); //---
 void PrzegladanieFolderu(char * nazwa_sciezki1, char* sciezka_folderu1, char* sciezka_folderu2, bool CzyR,int Wielkosc_pliku);
 void Logowanie();
 
