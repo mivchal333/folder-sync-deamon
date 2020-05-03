@@ -91,5 +91,4 @@ int main(int argc, char *argv[]) {
     }
     closelog();
     exit(EXIT_SUCCESS);
-    return 0;
 }

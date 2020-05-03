@@ -1,7 +1,5 @@
 #include "function.h"
 
-void copyFile(char *inPath, char *outPath, int switchSize, char *tempPath);
-
 off_t getFileSize(const char *in) {
     struct stat size;
     if (stat(in, &size) == 0) {
@@ -10,19 +8,19 @@ off_t getFileSize(const char *in) {
     return -1;
 }
 
-time_t getFileModificationTime(char *in) {
+int getFileModificationTime(char *filePath) {
     struct stat attr;
-    if (stat(in, &attr) == -1) {
-        syslogCom(1,in);
+    if (stat(filePath, &attr) == -1) {
+        syslogCom(1, filePath);
         exit(EXIT_FAILURE);
     }
-    return attr.st_mtime;
+    return (int) attr.st_mtime;
 }
 
 mode_t getFilePermissions(char *in) {
     struct stat attr;
     if (stat(in, &attr) == -1) {
-        syslogCom(2,in);
+        syslogCom(2, in);
         exit(EXIT_FAILURE);
     }
     return attr.st_mode;
@@ -33,12 +31,12 @@ void changeParameters(char *in, char *out) {
     times.actime = 0;
     times.modtime = getFileModificationTime(in);
     if (utime(out, &times) == -1) {
-        syslogCom(3,out);
+        syslogCom(3, out);
         exit(EXIT_FAILURE);
     }
     mode_t inFileMode = getFilePermissions(in);
     if (chmod(out, inFileMode) == -1) {
-        syslogCom(4,out);
+        syslogCom(4, out);
         exit(EXIT_FAILURE);
     }
 }
@@ -59,7 +57,7 @@ char *replaceCatalog1(char *path, char *catalogOnePath, char *catalogTwoPath) {
     return newPath;
 }
 
-char *addToPath(char *path, char *add) {
+char *addFileNameToPath(char *path, char *add) {
     char *newPath = malloc(strlen(path) + 2 + strlen(add));
     strcpy(newPath, path);
     strcat(newPath, "/");
@@ -68,41 +66,22 @@ char *addToPath(char *path, char *add) {
     return newPath;
 }
 
-bool isFileNeedSync(char *path, char *catalogOnePath, char *catalogTwoPath) {
-    bool result = 0;
-    char *pathName = path + strlen(catalogOnePath);
-    char *searching = malloc(strlen(pathName));
-    char *newPath = replaceCatalog1(path, catalogOnePath, catalogTwoPath);
+bool isFileNeedSync(char *filename, char *inPath, char *outPath) {
+    char *outFilePath = addFileNameToPath(outPath, filename);
 
-    int i = strlen(newPath);
-    for (i; newPath[i] != '/'; i--);
-    strcpy(searching, newPath + i + 1);
-    newPath[i] = '\0';
-    struct dirent *file;
-    DIR *dirOpenPath;
-    dirOpenPath = opendir(newPath);
+    if (isFileExists(outFilePath)) {
+        syslog(LOG_ERR, "File %s exist in out folder", filename);
 
-    while ((file = readdir(dirOpenPath))) {
-        if (strcmp(file->d_name, searching) == 0) {
-            free(searching);
-            if ((file->d_type) == DT_DIR)  //    GDY JEST FOLDEREM
-            {
-                return 0;
-            } else {
-                int date1 = (int) getFileModificationTime(path), date2 = (int) getFileModificationTime(
-                        addToPath(newPath, file->d_name));
-                if (date1 == date2) {
-                    return 0;
-                } else {
-                    return 1;
-                }
-            }
-        } else {
-            result = 1;
-        }
+        char *inFilePath = addFileNameToPath(inPath, filename);
+
+        int fromFileModDate = getFileModificationTime(inFilePath);
+        int toFileModDate = getFileModificationTime(outFilePath);
+
+        return fromFileModDate != toFileModDate;
+    } else {
+        syslog(LOG_ERR, "File %s does not exist in out folder", filename);
+        return true;
     }
-    closedir(dirOpenPath);
-    return result;
 }
 
 
@@ -111,7 +90,7 @@ void delete(char *catalogPathName, char *catalogPathOne, char *catalogPathTwo) {
     DIR *path;
     path = opendir(catalogPathName);
     while ((file = readdir(path))) {
-        char *newPath = addToPath(catalogPathName, file->d_name);
+        char *newPath = addFileNameToPath(catalogPathName, file->d_name);
         if (access(replaceCatalog2(newPath, catalogPathOne, catalogPathTwo), F_OK) == -1) {
             syslogCom(5, newPath);
             remove(newPath);
@@ -159,14 +138,14 @@ void openfiles(char *in, char *out, int *inFile, int *outFile) {
 }
 
 
-void closefiles(char *in, char *out, int *inFile, int *outFile, int opc) {
+void closefiles(char *in, char *out, const int *inFile, const int *outFile, int opc) {
     close(*inFile);
     close(*outFile);
     changeParameters(in, out);
-    if(opc == 1)
-        syslogCom(7,in);
+    if (opc == 1)
+        syslogCom(7, in);
     else
-        syslogCom(8,in);
+        syslogCom(8, in);
 }
 
 void scanFolder(char *inPath, char *outPath, int switchSize) {
@@ -176,13 +155,12 @@ void scanFolder(char *inPath, char *outPath, int switchSize) {
     dir = opendir(inPath);
     char *fileTempPath;
     while ((entryPointer = readdir(dir)) != NULL) {
-        char* fileName = entryPointer->d_name;
+        char *fileName = entryPointer->d_name;
         syslog(LOG_INFO, "Scanning entry: %s\n", fileName);
-        if (isFile(entryPointer))
-        {
+        if (isFile(entryPointer)) {
             syslog(LOG_INFO, "Entry: %s is file. Checking sync\n", fileName);
-            fileTempPath = addToPath(inPath, fileName);
-            bool fileNeedSync = isFileNeedSync(fileTempPath, inPath, outPath);
+            fileTempPath = addFileNameToPath(inPath, fileName);
+            bool fileNeedSync = isFileNeedSync(fileName, inPath, outPath);
             if (fileNeedSync) {
                 copyFile(inPath, outPath, switchSize, fileTempPath);
             }
@@ -207,37 +185,8 @@ void wakeUpSignalHandler() {
 }
 
 bool isFile(const struct dirent *file) {
-    char *fileTypeString;
-    switch (file->d_type) {
-        case DT_REG : {
-            syslog(LOG_INFO, "Entry: %s type is: %s\n", file->d_name, "regular file");
-            return true;
-        }
-        case DT_UNKNOWN:
-            fileTypeString = "Unknown type";
-            break;
-        case DT_DIR:
-            fileTypeString = "directory";
-            break;
-        case DT_FIFO:
-            fileTypeString = "a named pipe";
-            break;
-        case DT_SOCK:
-            fileTypeString = "local domain socket";
-            break;
-        case DT_CHR:
-            fileTypeString = "character device";
-            break;
-        case DT_BLK:
-            fileTypeString = "block device";
-            break;
-        case DT_LNK:
-            fileTypeString = "symbolic link";
-    }
-    syslog(LOG_INFO, "Entry: %s type is: %s\n", file->d_name, fileTypeString);
-    return false;
+    return file != NULL && file->d_type == DT_REG;
 }
-
 
 bool isCatalog(char *path) {
     struct stat buf;
@@ -247,8 +196,8 @@ bool isCatalog(char *path) {
     return false;
 }
 
-void syslogCom(int in, char* file){
-    switch(in){
+void syslogCom(int in, char *file) {
+    switch (in) {
         case 1:
             syslog(LOG_ERR, "Error in getting date from file %s", file);
             break;
@@ -275,4 +224,11 @@ void syslogCom(int in, char* file){
             syslog(LOG_INFO, "File %s copied using mapping", file);
             break;
     }
+}
+
+bool isFileExists(char *filePath) {
+    syslog(LOG_ERR, "Checking is file exit %s", filePath);
+
+    struct stat buffer;
+    return (stat(filePath, &buffer) == 0);
 }
