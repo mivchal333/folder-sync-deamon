@@ -1,6 +1,6 @@
 #include "function.h"
 
-off_t getFileSize(char *in) {
+off_t getFileSize(const char *in) {
     struct stat size;
     if (stat(in, &size) == 0) {
         return size.st_size;
@@ -8,36 +8,35 @@ off_t getFileSize(char *in) {
     return -1;
 }
 
-time_t getFileDate(char *in)
-{
-    struct stat date;
-    if (stat(in, &date) == -1) {
-        syslog(LOG_ERR, "Blad z pobraniem daty modyfikacji dla pliku %s", in);
+time_t getFileModificationTime(char *in) {
+    struct stat attr;
+    if (stat(in, &attr) == -1) {
+        syslog(LOG_ERR, "Error while reading modification date. File: %s", in);
         exit(EXIT_FAILURE);
     }
-    return date.st_mtime;
+    return attr.st_mtime;
 }
 
 mode_t getFilePermissions(char *in) {
-    struct stat mod;
-    if (stat(in, &mod) == -1) {
-        syslog(LOG_ERR, "Blad pobrania chmod dla pliku %s", in);
+    struct stat attr;
+    if (stat(in, &attr) == -1) {
+        syslog(LOG_ERR, "Error while reading permissions. File: %s", in);
         exit(EXIT_FAILURE);
     }
-    return mod.st_mode;
+    return attr.st_mode;
 }
 
 void changeParameters(char *in, char *out) {
-    struct utimbuf date;
-    date.actime = 0;
-    date.modtime = getFileDate(in);
-    if (utime(out, &date) != 0) {
-        syslog(LOG_ERR, "Blad zwiazany z data modyfikacji!");
+    struct utimbuf times;
+    times.actime = 0;
+    times.modtime = getFileModificationTime(in);
+    if (utime(out, &times) == -1) {
+        syslog(LOG_ERR, "Error in changing file times: %s", out);
         exit(EXIT_FAILURE);
     }
-    mode_t oldFile = getFilePermissions(in);
-    if (chmod(out, oldFile) != 0) {
-        syslog(LOG_ERR, "Blad ustawienia uprawnien do pliku!");
+    mode_t inFileMode = getFilePermissions(in);
+    if (chmod(out, inFileMode) == -1) {
+        syslog(LOG_ERR, "Error while setting new file permissions: %s", out);
         exit(EXIT_FAILURE);
     }
 }
@@ -88,7 +87,7 @@ bool check(char *path, char *catalogOnePath, char *catalogTwoPath) {
             {
                 return 0;
             } else {
-                int date1 = (int) getFileDate(path), date2 = (int) getFileDate(
+                int date1 = (int) getFileModificationTime(path), date2 = (int) getFileModificationTime(
                         addToPath(newPath, file->d_name));
                 if (date1 == date2) {
                     return 0;
@@ -169,19 +168,20 @@ void closefiles(char *in, char *out, int *inFile, int *outFile, int opc) {
 }
 
 void scanFolder(char *pathName, char *catalogPathOne, char *catalogPathTwo, int switchSize) {
-    printf("Scanning catalog: %s\n", pathName);
-    struct dirent *file;
+    syslog(LOG_INFO, "Scanning catalog: %s\n", pathName);
+    struct dirent *entryPointer;
     DIR *path;
     path = opendir(pathName);
     char *newPath;
-    while ((file = readdir(path))) {
-        printf("%s  \n", file->d_name);
-        if ((file->d_type) == DT_REG)// GDY nie jest folderem
+    while ((entryPointer = readdir(path)) != NULL) {
+        syslog(LOG_INFO, "Scanning entry: %s\n", entryPointer->d_name);
+        if (isFile(entryPointer))
         {
-            newPath = addToPath(pathName, file->d_name);
-            int i;
-            if ((i = check(newPath, catalogPathOne, catalogPathTwo)) == 1) {
-                if (getFileSize(newPath) > switchSize) {
+            syslog(LOG_INFO, "Entry: %s is catalog\n", entryPointer->d_name);
+            newPath = addToPath(pathName, entryPointer->d_name);
+            bool checkResult = check(newPath, catalogPathOne, catalogPathTwo);
+            if (checkResult) {
+                if (isLargeFile(switchSize, newPath)) {
                     mapping_copy(newPath, replaceCatalog1(newPath, catalogPathOne, catalogPathTwo));
                 } else {
                     copy(newPath, replaceCatalog1(newPath, catalogPathOne, catalogPathTwo));
@@ -192,19 +192,50 @@ void scanFolder(char *pathName, char *catalogPathOne, char *catalogPathTwo, int 
     closedir(path);
 }
 
-void WakeUpSignalHandler(int sig) {
+bool isLargeFile(int switchSize, const char *newPath) { return getFileSize(newPath) > switchSize; }
+
+
+void wakeUpSignalHandler() {
     syslog(LOG_DEBUG, "Demon waked up");
 }
 
-bool isCatalog(char *in) {
-    struct stat s;
-    if (stat(in, &s) == 0) {
-        if (s.st_mode & S_IFDIR) //sciezka jest katalogiem
-        {
+bool isFile(const struct dirent *file) {
+    char *fileTypeString;
+    switch (file->d_type) {
+        case DT_REG : {
+            syslog(LOG_INFO, "Entry: %s type is: %s\n", file->d_name, "regular file");
             return true;
-        } else //sciezka nie jest katalogiem, wywal blad
-        {
-            return false;
         }
+        case DT_UNKNOWN:
+            fileTypeString = "Unknown type";
+            break;
+        case DT_DIR:
+            fileTypeString = "directory";
+            break;
+        case DT_FIFO:
+            fileTypeString = "a named pipe";
+            break;
+        case DT_SOCK:
+            fileTypeString = "local domain socket";
+            break;
+        case DT_CHR:
+            fileTypeString = "character device";
+            break;
+        case DT_BLK:
+            fileTypeString = "block device";
+            break;
+        case DT_LNK:
+            fileTypeString = "symbolic link";
     }
+    syslog(LOG_INFO, "Entry: %s type is: %s\n", file->d_name, fileTypeString);
+    return false;
+}
+
+
+bool isCatalog(char *path) {
+    struct stat buf;
+    if (stat(path, &buf) == 0) {
+        return (buf.st_mode & S_IFDIR);
+    }
+    return false;
 }

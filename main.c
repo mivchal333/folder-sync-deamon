@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
     close(STDERR_FILENO);
     syslog(LOG_DEBUG, "DEMON CONFIGURED");
 
-    signal(SIGUSR1, WakeUpSignalHandler);
+    signal(SIGUSR1, wakeUpSignalHandler);
 
     while (1) {
         delete(path2, path1, path2);

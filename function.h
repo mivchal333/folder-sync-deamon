@@ -14,8 +14,8 @@
 #include <syslog.h>
 #include <fcntl.h>
 
-off_t getFileSize(char *in);
-time_t getFileDate(char* in);
+off_t getFileSize(const char *in);
+time_t getFileModificationTime(char* in);
 mode_t getFilePermissions(char *in);
 void changeParameters(char* in, char *out);
 char *replaceCatalog2(char * path, char* catalogOnePath, char* catalogTwoPath);
@@ -28,6 +28,8 @@ void mapping_copy(char *in, char *out); //---
 void openfiles(char *in, char *out, int *inFile, int *outFile); //---
 void closefiles(char *in, char *out, int *inFile, int *outFile, int opc); //---
 void scanFolder(char * pathName, char* catalogPathOne, char* catalogPathTwo, int switchSize);
-void WakeUpSignalHandler();
-bool isCatalog(char * in);
+void wakeUpSignalHandler();
+bool isCatalog(char * path);
+bool isFile(const struct dirent *file);
+bool isLargeFile(int switchSize, const char *newPath);
 #endif
