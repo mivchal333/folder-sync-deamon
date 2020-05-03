@@ -11,7 +11,7 @@ off_t getFileSize(const char *in) {
 time_t getFileModificationTime(char *in) {
     struct stat attr;
     if (stat(in, &attr) == -1) {
-        syslog(LOG_ERR, "Error while reading modification date. File: %s", in);
+        syslogCom(1,in);
         exit(EXIT_FAILURE);
     }
     return attr.st_mtime;
@@ -20,7 +20,7 @@ time_t getFileModificationTime(char *in) {
 mode_t getFilePermissions(char *in) {
     struct stat attr;
     if (stat(in, &attr) == -1) {
-        syslog(LOG_ERR, "Error while reading permissions. File: %s", in);
+        syslogCom(2,in);
         exit(EXIT_FAILURE);
     }
     return attr.st_mode;
@@ -31,12 +31,12 @@ void changeParameters(char *in, char *out) {
     times.actime = 0;
     times.modtime = getFileModificationTime(in);
     if (utime(out, &times) == -1) {
-        syslog(LOG_ERR, "Error in changing file times: %s", out);
+        syslogCom(3,out);
         exit(EXIT_FAILURE);
     }
     mode_t inFileMode = getFilePermissions(in);
     if (chmod(out, inFileMode) == -1) {
-        syslog(LOG_ERR, "Error while setting new file permissions: %s", out);
+        syslogCom(4,out);
         exit(EXIT_FAILURE);
     }
 }
@@ -111,7 +111,7 @@ void delete(char *catalogPathName, char *catalogPathOne, char *catalogPathTwo) {
     while ((file = readdir(path))) {
         char *newPath = addToPath(catalogPathName, file->d_name);
         if (access(replaceCatalog2(newPath, catalogPathOne, catalogPathTwo), F_OK) == -1) {
-            syslog(LOG_INFO, "Usunieto plik %s", newPath);
+            syslogCom(5, newPath);
             remove(newPath);
         }
     }
@@ -151,7 +151,7 @@ void mapping_copy(char *in, char *out) {
 
 void openfiles(char *in, char *out, int *inFile, int *outFile) {
     if ((*inFile = open(in, O_RDONLY)) == -1 || (*outFile = open(out, O_CREAT | O_WRONLY | O_TRUNC, 0644)) == -1) {
-        syslog(LOG_ERR, "File open error!");
+        syslogCom(6, in);
         exit(EXIT_FAILURE);
     }
 }
@@ -161,10 +161,10 @@ void closefiles(char *in, char *out, int *inFile, int *outFile, int opc) {
     close(*inFile);
     close(*outFile);
     changeParameters(in, out);
-    if (opc == 1)
-        syslog(LOG_INFO, "File copied!");
+    if(opc == 1)
+        syslogCom(7,in);
     else
-        syslog(LOG_INFO, "File copied using mapping!");
+        syslogCom(8,in);
 }
 
 void scanFolder(char *pathName, char *catalogPathOne, char *catalogPathTwo, int switchSize) {
@@ -238,4 +238,34 @@ bool isCatalog(char *path) {
         return (buf.st_mode & S_IFDIR);
     }
     return false;
+}
+
+void syslogCom(int in, char* file){
+    switch(in){
+        case 1:
+            syslog(LOG_ERR, "Error in getting date from file %s", file);
+            break;
+        case 2:
+            syslog(LOG_ERR, "Error in getting chmod from file %s", file);
+            break;
+        case 3:
+            syslog(LOG_ERR, "Error in setting date for file %s", file);
+            break;
+        case 4:
+            syslog(LOG_ERR, "Error in setting chmod for file %s", file);
+            break;
+        case 5:
+            //directory
+            syslog(LOG_INFO, "Directory %s removed", file);
+            break;
+        case 6:
+            syslog(LOG_ERR, "File open error - %s", file);
+            break;
+        case 7:
+            syslog(LOG_INFO, "File %s copied", file);
+            break;
+        case 8:
+            syslog(LOG_INFO, "File %s copied using mapping", file);
+            break;
+    }
 }

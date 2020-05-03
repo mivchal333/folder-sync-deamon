@@ -29,6 +29,7 @@ void openfiles(char *in, char *out, int *inFile, int *outFile); //---
 void closefiles(char *in, char *out, int *inFile, int *outFile, int opc); //---
 void scanFolder(char * pathName, char* catalogPathOne, char* catalogPathTwo, int switchSize);
 void wakeUpSignalHandler();
+void syslogCom(int in, char *file);
 bool isCatalog(char * path);
 bool isFile(const struct dirent *file);
 bool isLargeFile(int switchSize, const char *newPath);
