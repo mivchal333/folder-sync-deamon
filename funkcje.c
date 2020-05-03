@@ -43,7 +43,7 @@ void zmien_parametry(char *wej, char *wyj) {
 }
 
 char *podmien_folder2(char *sciezka1, char *sciezka_folderu1, char *sciezka_folderu2) {
-    char * sciezka = sciezka1 + strlen(sciezka_folderu2);
+    char *sciezka = sciezka1 + strlen(sciezka_folderu2);
     char *nowa_sciezka = malloc(strlen(sciezka_folderu1) + strlen(sciezka) + 1);
     strcpy(nowa_sciezka, sciezka_folderu1);
     strcat(nowa_sciezka, sciezka);
@@ -121,8 +121,8 @@ void Usuwanie(char *nazwa_sciezki_folder2, char *sciezka_folderu1, char *sciezka
 
 void copy(char *in, char *out) {
     char buffor[16];
-    int in_file,out_file;
-    openfiles(in, out,  &in_file, &out_file);
+    int in_file, out_file;
+    openfiles(in, out, &in_file, &out_file);
 
     int r_in, r_out;
 
@@ -133,35 +133,36 @@ void copy(char *in, char *out) {
             exit(EXIT_FAILURE);
         }
     }
-    closefiles(in, out,  &in_file, &out_file,1);
+    closefiles(in, out, &in_file, &out_file, 1);
 
 }
 
 void mapping_copy(char *in, char *out) {
     int size = pobierz_rozmiar(in);
-    int in_file,out_file;
-    openfiles(in, out,  &in_file, &out_file);
+    int in_file, out_file;
+    openfiles(in, out, &in_file, &out_file);
 
-    char *map = (char*) mmap (0, size, PROT_READ, MAP_SHARED | MAP_FILE, in_file, 0);
+    char *map = (char *) mmap(0, size, PROT_READ, MAP_SHARED | MAP_FILE, in_file, 0);
 
     write(out_file, map, size);
     munmap(map, size);
 
-    closefiles(in, out,  &in_file, &out_file,0);
+    closefiles(in, out, &in_file, &out_file, 0);
 }
 
-void openfiles(char *in, char *out, int *in_file, int *out_file){if ((*in_file = open(in, O_RDONLY)) == -1 || (*out_file= open(out, O_CREAT | O_WRONLY | O_TRUNC, 0644)) == -1) {
+void openfiles(char *in, char *out, int *in_file, int *out_file) {
+    if ((*in_file = open(in, O_RDONLY)) == -1 || (*out_file = open(out, O_CREAT | O_WRONLY | O_TRUNC, 0644)) == -1) {
         syslog(LOG_ERR, "File open error!");
-      exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
     }
 }
 
 
-void closefiles(char *in, char *out, int *in_file, int *out_file, int opc){
+void closefiles(char *in, char *out, int *in_file, int *out_file, int opc) {
     close(*in_file);
     close(*out_file);
     zmien_parametry(in, out);
-    if(opc == 1)
+    if (opc == 1)
         syslog(LOG_INFO, "File copied!");
     else
         syslog(LOG_INFO, "File copied using mapping!");
@@ -195,8 +196,7 @@ void WakeUpSignalHandler(int sig) {
     syslog(LOG_DEBUG, "Demon waked up");
 }
 
-bool isCatalog(char *wej)
-{
+bool isCatalog(char *wej) {
     struct stat s;
     if (stat(wej, &s) == 0) {
         if (s.st_mode & S_IFDIR) //sciezka jest katalogiem

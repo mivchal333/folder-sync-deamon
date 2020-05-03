@@ -49,19 +49,19 @@ int main(int argc, char *argv[]) {
         switch (c) {
             case 'f':
                 in = optarg;
-                    if (isCatalog(in)) {
-                        path1 = optarg;
-                    } else {
-                        syslog(LOG_ERR, "From path is not a folder. Exiting");
-                        printf("From path must specify folder");
-                        exit(EXIT_FAILURE);
-                    }
+                if (isCatalog(in)) {
+                    path1 = optarg;
+                } else {
+                    syslog(LOG_ERR, "From path is not a folder. Exiting");
+                    printf("From path must specify folder");
+                    exit(EXIT_FAILURE);
+                }
                 break;
             case 't':
                 out = optarg;
-                if(isCatalog(out)){
+                if (isCatalog(out)) {
                     path2 = optarg;
-                } else{
+                } else {
                     syslog(LOG_ERR, "To path is not a folder. Exiting");
                     printf("To path must specify folder");
                     exit(EXIT_FAILURE);
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
     close(STDERR_FILENO);
     syslog(LOG_DEBUG, "DEMON CONFIGURED");
 
-   signal(SIGUSR1, WakeUpSignalHandler);
+    signal(SIGUSR1, WakeUpSignalHandler);
 
     while (1) {
         Usuwanie(path2, path1, path2);
