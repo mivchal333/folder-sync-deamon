@@ -3,4 +3,4 @@ project(folder_sync_deamon C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(folder_sync_deamon main.c funkcje.c funkcje.h)
+add_executable(folder_sync_deamon main.c function.c function.h)
