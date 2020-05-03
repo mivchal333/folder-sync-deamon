@@ -1,5 +1,5 @@
 #include <sys/types.h>
-#include "funkcje.h"
+#include "function.h"
 
 
 int main(int argc, char *argv[]) {
@@ -83,11 +83,11 @@ int main(int argc, char *argv[]) {
     signal(SIGUSR1, WakeUpSignalHandler);
 
     while (1) {
-        Usuwanie(path2, path1, path2);
-        PrzegladanieFolderu(path1, path1, path2, switchSize);
-        syslog(LOG_INFO, "Demon przeszedl w stan uspienia");
+        delete(path2, path1, path2);
+        scanFolder(path1, path1, path2, switchSize);
+        syslog(LOG_INFO, "Demon goes sleep");
         if ((sleep(sleepTime)) == 0)
-            syslog(LOG_INFO, "Demon sie obudzil");
+            syslog(LOG_INFO, "Demon woke up");
     }
     closelog();
     exit(EXIT_SUCCESS);
