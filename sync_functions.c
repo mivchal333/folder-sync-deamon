@@ -41,14 +41,6 @@ void updateFileModTimeAndPermissions(char *inFilePath, char *outFilePath) {
     }
 }
 
-char *replaceCatalog1(char *path, char *catalogOnePath, char *catalogTwoPath) {
-    char *fullPath = path + strlen(catalogOnePath);
-    char *newPath = malloc(strlen(catalogTwoPath) + strlen(fullPath) + 1);
-    strcpy(newPath, catalogTwoPath);
-    strcat(newPath, fullPath);
-    return newPath;
-}
-
 char *addFileNameToPath(char *path, char *fileName) {
     char *result = malloc(strlen(path) + 2 + strlen(fileName));
     strcpy(result, path);
@@ -158,22 +150,24 @@ void scanFolder(char *inPath, char *outPath, int switchSize) {
         syslog(LOG_INFO, "Scanning entry: %s", fileName);
         if (isFile(entryPointer)) {
             syslog(LOG_INFO, "Entry: %s is file. Checking sync", fileName);
-            fileTempPath = addFileNameToPath(inPath, fileName);
             bool fileNeedSync = isFileNeedSync(fileName, inPath, outPath);
             if (fileNeedSync) {
                 syslog(LOG_INFO, "File: %s is need sync.", fileName);
-                copyFile(inPath, outPath, switchSize, fileTempPath);
+                copyFile(inPath, outPath, switchSize, fileName);
             }
         }
     }
     closedir(dir);
 }
 
-void copyFile(char *inPath, char *outPath, int switchSize, char *tempPath) {
-    if (isLargeFile(switchSize, tempPath)) {
-        mapping_copy(tempPath, replaceCatalog1(tempPath, inPath, outPath));
+void copyFile(char *inPath, char *outPath, int switchSize, char *fileName) {
+    char *toFilePatch = addFileNameToPath(outPath, fileName);
+    char *fromFilePatch = addFileNameToPath(inPath, fileName);
+
+    if (isLargeFile(switchSize, fromFilePatch)) {
+        mapping_copy(fromFilePatch, toFilePatch);
     } else {
-        copy(tempPath, replaceCatalog1(tempPath, inPath, outPath));
+        copy(fromFilePatch, toFilePatch);
     }
 }
 

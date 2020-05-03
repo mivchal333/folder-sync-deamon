@@ -23,8 +23,6 @@ mode_t getFilePermissions(char *in);
 
 void updateFileModTimeAndPermissions(char *inFilePath, char *outFilePath);
 
-char *replaceCatalog1(char *path, char *catalogOnePath, char *catalogTwoPath);
-
 char *addFileNameToPath(char *path, char *fileName);
 
 bool isFileNeedSync(char *filename, char *inPath, char *outPath);
