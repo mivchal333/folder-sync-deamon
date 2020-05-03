@@ -43,14 +43,14 @@ int main(int argc, char *argv[]) {
     int c;
     int sleepTime = 300;
     int switchSize;
-    char *path1 = NULL;
-    char *path2 = NULL;
+    char *inPath = NULL;
+    char *toPath = NULL;
     while ((c = getopt(argc, argv, "f:t:s:m")) != -1) {
         switch (c) {
             case 'f':
                 in = optarg;
                 if (isCatalog(in)) {
-                    path1 = optarg;
+                    inPath = optarg;
                 } else {
                     syslog(LOG_ERR, "From path is not a folder. Exiting");
                     printf("From path must specify folder");
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
             case 't':
                 out = optarg;
                 if (isCatalog(out)) {
-                    path2 = optarg;
+                    toPath = optarg;
                 } else {
                     syslog(LOG_ERR, "To path is not a folder. Exiting");
                     printf("To path must specify folder");
@@ -83,8 +83,8 @@ int main(int argc, char *argv[]) {
     signal(SIGUSR1, wakeUpSignalHandler);
 
     while (1) {
-        delete(path2, path1, path2);
-        scanFolder(path1, path1, path2, switchSize);
+        delete(toPath, inPath, toPath);
+        scanFolder(inPath, toPath, switchSize);
         syslog(LOG_INFO, "Demon goes sleep");
         if ((sleep(sleepTime)) == 0)
             syslog(LOG_INFO, "Demon woke up");

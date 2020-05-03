@@ -1,5 +1,7 @@
 #include "function.h"
 
+void copyFile(char *inPath, char *outPath, int switchSize, char *tempPath);
+
 off_t getFileSize(const char *in) {
     struct stat size;
     if (stat(in, &size) == 0) {
@@ -66,7 +68,7 @@ char *addToPath(char *path, char *add) {
     return newPath;
 }
 
-bool check(char *path, char *catalogOnePath, char *catalogTwoPath) {
+bool isFileNeedSync(char *path, char *catalogOnePath, char *catalogTwoPath) {
     bool result = 0;
     char *pathName = path + strlen(catalogOnePath);
     char *searching = malloc(strlen(pathName));
@@ -167,29 +169,34 @@ void closefiles(char *in, char *out, int *inFile, int *outFile, int opc) {
         syslog(LOG_INFO, "File copied using mapping!");
 }
 
-void scanFolder(char *pathName, char *catalogPathOne, char *catalogPathTwo, int switchSize) {
-    syslog(LOG_INFO, "Scanning catalog: %s\n", pathName);
+void scanFolder(char *inPath, char *outPath, int switchSize) {
+    syslog(LOG_INFO, "Scanning catalog: %s\n", inPath);
     struct dirent *entryPointer;
-    DIR *path;
-    path = opendir(pathName);
-    char *newPath;
-    while ((entryPointer = readdir(path)) != NULL) {
-        syslog(LOG_INFO, "Scanning entry: %s\n", entryPointer->d_name);
+    DIR *dir;
+    dir = opendir(inPath);
+    char *fileTempPath;
+    while ((entryPointer = readdir(dir)) != NULL) {
+        char* fileName = entryPointer->d_name;
+        syslog(LOG_INFO, "Scanning entry: %s\n", fileName);
         if (isFile(entryPointer))
         {
-            syslog(LOG_INFO, "Entry: %s is catalog\n", entryPointer->d_name);
-            newPath = addToPath(pathName, entryPointer->d_name);
-            bool checkResult = check(newPath, catalogPathOne, catalogPathTwo);
-            if (checkResult) {
-                if (isLargeFile(switchSize, newPath)) {
-                    mapping_copy(newPath, replaceCatalog1(newPath, catalogPathOne, catalogPathTwo));
-                } else {
-                    copy(newPath, replaceCatalog1(newPath, catalogPathOne, catalogPathTwo));
-                }
+            syslog(LOG_INFO, "Entry: %s is file. Checking sync\n", fileName);
+            fileTempPath = addToPath(inPath, fileName);
+            bool fileNeedSync = isFileNeedSync(fileTempPath, inPath, outPath);
+            if (fileNeedSync) {
+                copyFile(inPath, outPath, switchSize, fileTempPath);
             }
         }
     }
-    closedir(path);
+    closedir(dir);
+}
+
+void copyFile(char *inPath, char *outPath, int switchSize, char *tempPath) {
+    if (isLargeFile(switchSize, tempPath)) {
+        mapping_copy(tempPath, replaceCatalog1(tempPath, inPath, outPath));
+    } else {
+        copy(tempPath, replaceCatalog1(tempPath, inPath, outPath));
+    }
 }
 
 bool isLargeFile(int switchSize, const char *newPath) { return getFileSize(newPath) > switchSize; }
