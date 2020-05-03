@@ -21,13 +21,13 @@ void changeParameters(char* in, char *out);
 char *replaceCatalog2(char * path, char* catalogOnePath, char* catalogTwoPath);
 char *replaceCatalog1(char * path, char* catalogOnePath, char* catalogTwoPath);
 char *addToPath(char* path, char *add);
-bool check(char * path, char* catalogOnePath, char* catalogTwoPath);
+bool isFileNeedSync(char * path, char* catalogOnePath, char* catalogTwoPath);
 void delete(char * catalogPathName, char* catalogPathOne, char* catalogPathTwo);
 void copy(char *in, char *out); //---
 void mapping_copy(char *in, char *out); //---
 void openfiles(char *in, char *out, int *inFile, int *outFile); //---
 void closefiles(char *in, char *out, int *inFile, int *outFile, int opc); //---
-void scanFolder(char * pathName, char* catalogPathOne, char* catalogPathTwo, int switchSize);
+void scanFolder(char * pathName, char* catalogPathTwo, int switchSize);
 void wakeUpSignalHandler();
 void syslogCom(int in, char *file);
 bool isCatalog(char * path);
