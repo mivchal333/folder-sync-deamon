@@ -1,11 +1,11 @@
 #include "function.h"
 
-off_t getFileSize(const char *in) {
+int getFileSize(const char *filePath) {
     struct stat size;
-    if (stat(in, &size) == 0) {
-        return size.st_size;
+    if (stat(filePath, &size) == -1) {
+        exit(EXIT_FAILURE);
     }
-    return -1;
+    return (int) size.st_size;
 }
 
 int getFileModificationTime(char *filePath) {
@@ -26,17 +26,17 @@ mode_t getFilePermissions(char *in) {
     return attr.st_mode;
 }
 
-void changeParameters(char *in, char *out) {
+void updateFileModTimeAndPermissions(char *inFilePath, char *outFilePath) {
     struct utimbuf times;
     times.actime = 0;
-    times.modtime = getFileModificationTime(in);
-    if (utime(out, &times) == -1) {
-        syslogCom(3, out);
+    times.modtime = getFileModificationTime(inFilePath);
+    if (utime(outFilePath, &times) == -1) {
+        syslogCom(3, outFilePath);
         exit(EXIT_FAILURE);
     }
-    mode_t inFileMode = getFilePermissions(in);
-    if (chmod(out, inFileMode) == -1) {
-        syslogCom(4, out);
+    mode_t inFileMode = getFilePermissions(inFilePath);
+    if (chmod(outFilePath, inFileMode) == -1) {
+        syslogCom(4, outFilePath);
         exit(EXIT_FAILURE);
     }
 }
@@ -57,20 +57,19 @@ char *replaceCatalog1(char *path, char *catalogOnePath, char *catalogTwoPath) {
     return newPath;
 }
 
-char *addFileNameToPath(char *path, char *add) {
-    char *newPath = malloc(strlen(path) + 2 + strlen(add));
-    strcpy(newPath, path);
-    strcat(newPath, "/");
-    strcat(newPath, add);
-    newPath[strlen(path) + 1 + strlen(add)] = '\0';
-    return newPath;
+char *addFileNameToPath(char *path, char *fileName) {
+    char *result = malloc(strlen(path) + 2 + strlen(fileName));
+    strcpy(result, path);
+    strcat(result, "/");
+    strcat(result, fileName);
+    return result;
 }
 
 bool isFileNeedSync(char *filename, char *inPath, char *outPath) {
     char *outFilePath = addFileNameToPath(outPath, filename);
 
     if (isFileExists(outFilePath)) {
-        syslog(LOG_ERR, "File %s exist in out folder", filename);
+        syslog(LOG_INFO, "File %s exist in out folder", filename);
 
         char *inFilePath = addFileNameToPath(inPath, filename);
 
@@ -79,7 +78,7 @@ bool isFileNeedSync(char *filename, char *inPath, char *outPath) {
 
         return fromFileModDate != toFileModDate;
     } else {
-        syslog(LOG_ERR, "File %s does not exist in out folder", filename);
+        syslog(LOG_INFO, "File %s does not exist in out folder", filename);
         return true;
     }
 }
@@ -141,7 +140,7 @@ void openfiles(char *in, char *out, int *inFile, int *outFile) {
 void closefiles(char *in, char *out, const int *inFile, const int *outFile, int opc) {
     close(*inFile);
     close(*outFile);
-    changeParameters(in, out);
+    updateFileModTimeAndPermissions(in, out);
     if (opc == 1)
         syslogCom(7, in);
     else
@@ -149,19 +148,20 @@ void closefiles(char *in, char *out, const int *inFile, const int *outFile, int 
 }
 
 void scanFolder(char *inPath, char *outPath, int switchSize) {
-    syslog(LOG_INFO, "Scanning catalog: %s\n", inPath);
+    syslog(LOG_INFO, "Scanning catalog: %s", inPath);
     struct dirent *entryPointer;
     DIR *dir;
     dir = opendir(inPath);
     char *fileTempPath;
     while ((entryPointer = readdir(dir)) != NULL) {
         char *fileName = entryPointer->d_name;
-        syslog(LOG_INFO, "Scanning entry: %s\n", fileName);
+        syslog(LOG_INFO, "Scanning entry: %s", fileName);
         if (isFile(entryPointer)) {
-            syslog(LOG_INFO, "Entry: %s is file. Checking sync\n", fileName);
+            syslog(LOG_INFO, "Entry: %s is file. Checking sync", fileName);
             fileTempPath = addFileNameToPath(inPath, fileName);
             bool fileNeedSync = isFileNeedSync(fileName, inPath, outPath);
             if (fileNeedSync) {
+                syslog(LOG_INFO, "File: %s is need sync.", fileName);
                 copyFile(inPath, outPath, switchSize, fileTempPath);
             }
         }
