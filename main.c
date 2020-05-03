@@ -2,119 +2,91 @@
 #include "funkcje.h"
 
 
-int main(int argc, char * argv[])
-{
-    openlog("PROJEKT", LOG_PID|LOG_CONS, LOG_USER);
-    if(argc<5)
-    {
-        printf("Zbyt mala liczba argumentow wejsciowych!");
-        syslog(LOG_ERR, "Zbyt mala liczba argumentow wejsciowych!");
-        exit(EXIT_FAILURE);
-    }
+int main(int argc, char *argv[]) {
+    /* Our process ID and Session ID */
     pid_t pid, sid;
 
+    /* Fork off the parent process */
     pid = fork();
-
-    if(pid<0)
-    {
-        syslog(LOG_ERR, "Nieprawidlowy identyfikator procesu child!");
+    if (pid < 0) {
         exit(EXIT_FAILURE);
     }
-    if(pid>0)
-    {
+    /* If we got a good PID, then we can exit the parent process. */
+    if (pid > 0) {
         exit(EXIT_SUCCESS);
     }
-
+    /* Change the file mode mask */
     umask(0);
+    /* Open logs */
+    openlog("sync-demon", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 
+    if (argc < 5) {
+        syslog(LOG_ERR, "Tried to run without required parameters");
+        printf("Please run with at least two required parameters");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Create a new SID for the child process */
     sid = setsid();
-    if(sid<0)
-    {
-        syslog(LOG_ERR, "Blad z SessionID!");
+    if (sid < 0) {
+        syslog(LOG_ERR, "Error related to child process");
         exit(EXIT_FAILURE);
     }
-    if((chdir("/")) < 0)
-    {
-        syslog(LOG_ERR, "Problem ze zmiana katalogu roboczego!");
+    /* Change the current working directory */
+    if ((chdir("/")) < 0) {
+        syslog(LOG_ERR, "Chdir to root folder failed");
         exit(EXIT_FAILURE);
     }
 
 
-    int wybor = 0, rozmiar = 50;
-    bool rekurencja= false;
     char *in, *out;
-    int spij = 5*60; //domyslna dlugosc snu dla demona
-    struct stat s;
-    char * sciezka_folderu1=NULL;
-    char * sciezka_folderu2=NULL;
-    while((wybor = getopt(argc, argv, "s:i:o:m:r")) != -1)
-    {
-        switch(wybor)
-        {
-        case 's': //argument z nowa wartoscia spania demona
-            spij = atoi(optarg);
-            break;
-
-        case 'i':
-            in = optarg;
-            if(stat(in, &s) == 0)
-            {
-                if(s.st_mode & S_IFDIR) //sciezka jest katalogiem
-                {
-                    sciezka_folderu1 = optarg;
-                }
-                else //sciezka nie jest katalogiem, wywal blad
-                {
-                    printf("-i: Podany argument nie jest folderem");
-                    syslog(LOG_ERR, "Podany argument nie jest folderem");
+    int c;
+    int sleepTime = 300;
+    int switchSize;
+    char *path1 = NULL;
+    char *path2 = NULL;
+    while ((c = getopt(argc, argv, "f:t:s:m")) != -1) {
+        switch (c) {
+            case 'f':
+                in = optarg;
+                    if (isCatalog(in)) {
+                        path1 = optarg;
+                    } else {
+                        syslog(LOG_ERR, "From path is not a folder. Exiting");
+                        printf("From path must specify folder");
+                        exit(EXIT_FAILURE);
+                    }
+                break;
+            case 't':
+                out = optarg;
+                if(isCatalog(out)){
+                    path2 = optarg;
+                } else{
+                    syslog(LOG_ERR, "To path is not a folder. Exiting");
+                    printf("To path must specify folder");
                     exit(EXIT_FAILURE);
                 }
-            }
-            break;
-
-        case 'o':
-            out = optarg;
-            if(stat(out, &s) == 0)
-            {
-                if(s.st_mode & S_IFDIR) //sciezka jest katalogiem
-                {
-                    sciezka_folderu2 = optarg;
-                }
-                else //sciezka nie jest katalogiem, wywal blad
-                {
-                    printf("-o: Podany argument nie jest folderem");
-                    syslog(LOG_ERR, "Podany argument nie jest folderem");
-                    exit(EXIT_FAILURE);
-                }
-            }
-            break;
-
-        case 'r':
-            rekurencja = true;
-            break;
-
-        case 'm':
-            rozmiar = atoi(optarg);
-            break;
+                break;
+            case 's':
+                sleepTime = atoi(optarg);
+                break;
+            case 'm':
+                switchSize = atoi(optarg);
+                break;
         }
     }
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-	syslog(LOG_INFO, "Demon synchronizujacy dwa katalogi");
-    if(signal(SIGUSR1, Logowanie)==SIG_ERR)
-    {
-        syslog(LOG_ERR, "Blad sygnalu!");
-        exit(EXIT_FAILURE);
-    }
-    
+    syslog(LOG_DEBUG, "DEMON CONFIGURED");
 
-    while(1)
-    {
-        Usuwanie(sciezka_folderu2,sciezka_folderu1,sciezka_folderu2,rekurencja);
-        PrzegladanieFolderu(sciezka_folderu1,sciezka_folderu1,sciezka_folderu2,rekurencja,rozmiar);
+   signal(SIGUSR1, WakeUpSignalHandler);
+
+    while (1) {
+        Usuwanie(path2, path1, path2);
+        PrzegladanieFolderu(path1, path1, path2, switchSize);
         syslog(LOG_INFO, "Demon przeszedl w stan uspienia");
-        if((sleep(spij))==0)
+        if ((sleep(sleepTime)) == 0)
             syslog(LOG_INFO, "Demon sie obudzil");
     }
     closelog();

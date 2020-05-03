@@ -1,0 +1,11 @@
+./sw_demon -f /home/amin/Desktop/repo/folder-sync-deamon/from -t /home/amin/Desktop/repo/folder-sync-deamon/to -s 5
+
+ps -aux
+
+kill [pid]
+
+kill -SIGUSR1 [pid]
+
+make
+
+tail -f /var/log/syslog
