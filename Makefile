@@ -1,11 +1,11 @@
-OBJ = main.o function.o
+OBJ = main.o sync_functions.o
 
-all: sw_demon
+all: sync_daemon
 
-sw_demon: $(OBJ)
-	gcc $(OBJ) -o sw_demon
+sync_daemon: $(OBJ)
+	gcc $(OBJ) -o sync_daemon
 
-$(OBJ): function.h
+$(OBJ): sync_functions.h
 
 .PHONY: clean
 clean:

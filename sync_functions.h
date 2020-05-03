@@ -23,15 +23,13 @@ mode_t getFilePermissions(char *in);
 
 void updateFileModTimeAndPermissions(char *inFilePath, char *outFilePath);
 
-char *replaceCatalog2(char *path, char *catalogOnePath, char *catalogTwoPath);
-
 char *replaceCatalog1(char *path, char *catalogOnePath, char *catalogTwoPath);
 
 char *addFileNameToPath(char *path, char *fileName);
 
 bool isFileNeedSync(char *filename, char *inPath, char *outPath);
 
-void delete(char *catalogPathName, char *catalogPathOne, char *catalogPathTwo);
+void delete(char *inPath, char *outPath);
 
 void copy(char *in, char *out);
 
@@ -51,7 +49,7 @@ bool isCatalog(char *path);
 
 bool isFile(const struct dirent *file);
 
-bool isLargeFile(int switchSize, const char *newPath);
+bool isLargeFile(int switchSize, const char *filePath);
 
 void copyFile(char *inPath, char *outPath, int switchSize, char *tempPath);
 

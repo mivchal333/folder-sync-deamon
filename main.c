@@ -1,6 +1,5 @@
 #include <sys/types.h>
-#include "function.h"
-
+#include "sync_functions.h"
 
 int main(int argc, char *argv[]) {
     /* Our process ID and Session ID */
@@ -42,7 +41,7 @@ int main(int argc, char *argv[]) {
     char *in, *out;
     int c;
     int sleepTime = 300;
-    int switchSize;
+    int copySwitchSize;
     char *inPath = NULL;
     char *toPath = NULL;
     while ((c = getopt(argc, argv, "f:t:s:m")) != -1) {
@@ -71,24 +70,23 @@ int main(int argc, char *argv[]) {
                 sleepTime = atoi(optarg);
                 break;
             case 'm':
-                switchSize = atoi(optarg);
+                copySwitchSize = atoi(optarg);
                 break;
         }
     }
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-    syslog(LOG_DEBUG, "DEMON CONFIGURED");
 
     signal(SIGUSR1, wakeUpSignalHandler);
 
+    syslog(LOG_DEBUG, "Daemon started!");
     while (1) {
-        delete(toPath, inPath, toPath);
-        scanFolder(inPath, toPath, switchSize);
-        syslog(LOG_INFO, "Demon goes sleep");
+        delete(inPath, toPath);
+        scanFolder(inPath, toPath, copySwitchSize);
+        syslog(LOG_INFO, "Daemon goes sleep");
         if ((sleep(sleepTime)) == 0)
-            syslog(LOG_INFO, "Demon woke up");
+            syslog(LOG_INFO, "Daemon woke up");
     }
-    closelog();
-    exit(EXIT_SUCCESS);
 }
+

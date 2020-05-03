@@ -1,4 +1,4 @@
-#include "function.h"
+#include "sync_functions.h"
 
 int getFileSize(const char *filePath) {
     struct stat size;
@@ -41,14 +41,6 @@ void updateFileModTimeAndPermissions(char *inFilePath, char *outFilePath) {
     }
 }
 
-char *replaceCatalog2(char *path, char *catalogOnePath, char *catalogTwoPath) {
-    char *fullPath = path + strlen(catalogTwoPath);
-    char *newPath = malloc(strlen(catalogOnePath) + strlen(fullPath) + 1);
-    strcpy(newPath, catalogOnePath);
-    strcat(newPath, fullPath);
-    return newPath;
-}
-
 char *replaceCatalog1(char *path, char *catalogOnePath, char *catalogTwoPath) {
     char *fullPath = path + strlen(catalogOnePath);
     char *newPath = malloc(strlen(catalogTwoPath) + strlen(fullPath) + 1);
@@ -84,18 +76,26 @@ bool isFileNeedSync(char *filename, char *inPath, char *outPath) {
 }
 
 
-void delete(char *catalogPathName, char *catalogPathOne, char *catalogPathTwo) {
-    struct dirent *file;
-    DIR *path;
-    path = opendir(catalogPathName);
-    while ((file = readdir(path))) {
-        char *newPath = addFileNameToPath(catalogPathName, file->d_name);
-        if (access(replaceCatalog2(newPath, catalogPathOne, catalogPathTwo), F_OK) == -1) {
-            syslogCom(5, newPath);
-            remove(newPath);
+void delete(char *inPath, char *outPath) {
+    struct dirent *entryPointer;
+    DIR *dir;
+    dir = opendir(outPath);
+    while ((entryPointer = readdir(dir))) {
+        if (isFile(entryPointer)) {
+            char *fileNameInOutCatalog = entryPointer->d_name;
+            syslog(LOG_INFO, "Checking if file %s exist in from catalog", fileNameInOutCatalog);
+
+            char *fileToCheckPath = addFileNameToPath(inPath, fileNameInOutCatalog);
+            if (!isFileExists(fileToCheckPath)) {
+                syslogCom(5, fileToCheckPath);
+
+                char *fileToRemovePath = addFileNameToPath(outPath, fileNameInOutCatalog);
+                syslog(LOG_INFO, "Removing file %s", fileToRemovePath);
+                remove(fileToRemovePath);
+            }
         }
     }
-    closedir(path);
+    closedir(dir);
 }
 
 void copy(char *in, char *out) {
@@ -108,7 +108,7 @@ void copy(char *in, char *out) {
     while ((r_in = read(in_file, buffor, sizeof(buffor))) > 0) {
         r_out = write(out_file, buffor, (ssize_t) r_in);
         if (r_out != r_in) {
-            perror("Error!");
+            syslog(LOG_ERR, "Error while copying file %s to %s", in, out);
             exit(EXIT_FAILURE);
         }
     }
@@ -177,8 +177,7 @@ void copyFile(char *inPath, char *outPath, int switchSize, char *tempPath) {
     }
 }
 
-bool isLargeFile(int switchSize, const char *newPath) { return getFileSize(newPath) > switchSize; }
-
+bool isLargeFile(int switchSize, const char *filePath) { return getFileSize(filePath) > switchSize; }
 
 void wakeUpSignalHandler() {
     syslog(LOG_DEBUG, "Demon waked up");
@@ -211,8 +210,7 @@ void syslogCom(int in, char *file) {
             syslog(LOG_ERR, "Error in setting chmod for file %s", file);
             break;
         case 5:
-            //directory
-            syslog(LOG_INFO, "Directory %s removed", file);
+            syslog(LOG_INFO, "File %s not exist. Removing if from catalog", file);
             break;
         case 6:
             syslog(LOG_ERR, "File open error - %s", file);
