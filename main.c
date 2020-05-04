@@ -71,6 +71,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 'm':
                 copySwitchSize = atoi(optarg);
+                syslog(LOG_INFO, "argument m %d", copySwitchSize);
                 break;
         }
     }

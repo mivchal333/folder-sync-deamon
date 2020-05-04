@@ -165,9 +165,9 @@ void copyFile(char *inPath, char *outPath, int switchSize, char *fileName) {
     char *fromFilePatch = addFileNameToPath(inPath, fileName);
 
     if (isLargeFile(switchSize, fromFilePatch)) {
-        mapping_copy(fromFilePatch, toFilePatch);
-    } else {
         copy(fromFilePatch, toFilePatch);
+    } else {
+        mapping_copy(fromFilePatch, toFilePatch);
     }
 }
 
