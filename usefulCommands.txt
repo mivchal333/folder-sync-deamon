@@ -1,4 +1,4 @@
-./sync_demon -f /home/amin/Desktop/repo/folder-sync-deamon/from -t /home/amin/Desktop/repo/folder-sync-deamon/to -s 5
+./sync_daemon -f /home/amin/Desktop/repo/folder-sync-deamon/from -t /home/amin/Desktop/repo/folder-sync-deamon/to -s 5
 
 ps -aux
 
